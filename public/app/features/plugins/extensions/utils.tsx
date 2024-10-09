@@ -16,6 +16,10 @@ import {
   PanelMenuItem,
   PluginExtensionAddedLinkConfig,
   urlUtil,
+  PluginContextType,
+  PluginExtensionExposedComponentConfig,
+  PluginExtensionAddedComponentConfig,
+  PluginExtensionPoints,
 } from '@grafana/data';
 import { reportInteraction, config } from '@grafana/runtime';
 import { Modal } from '@grafana/ui';
@@ -421,3 +425,221 @@ export function getLinkExtensionPathWithTracking(pluginId: string, path: string,
 // Comes from the `app_mode` setting in the Grafana config (defaults to "development")
 // Can be set with the `GF_DEFAULT_APP_MODE` environment variable
 export const isGrafanaDevMode = () => config.buildInfo.env === 'development';
+
+// Checks if the meta information is missing from the plugin's plugin.json file
+export const isExtensionPointMetaInfoMissing = (
+  extensionPointId: string,
+  pluginContext: PluginContextType,
+  log: ExtensionsLog
+) => {
+  const pluginId = pluginContext.meta?.id;
+  const extensionPoints = pluginContext.meta?.extensions?.extensionPoints;
+
+  if (!extensionPoints || !extensionPoints.some((ep) => ep.id === extensionPointId)) {
+    log.warning(
+      `Extension point "${extensionPointId}" - it's not recorded in the "plugin.json" for "${pluginId}". Please add it under "extensions.extensionPoints[]".`
+    );
+    return true;
+  }
+
+  return false;
+};
+
+// Checks if an exposed component that the plugin is depending on is missing from the `dependencies` in the plugin.json file
+export const isExposedComponentDependencyMissing = (
+  id: string,
+  pluginContext: PluginContextType,
+  log: ExtensionsLog
+) => {
+  const pluginId = pluginContext.meta?.id;
+  const exposedComponentsDependencies = pluginContext.meta?.dependencies?.extensions?.exposedComponents;
+
+  if (!exposedComponentsDependencies || !exposedComponentsDependencies.includes(id)) {
+    log.warning(
+      `Using exposed component "${id}" - it's not recorded in the "plugin.json" for "${pluginId}". Please add it under "dependencies.extensions.exposedComponents[]".`
+    );
+    return true;
+  }
+
+  return false;
+};
+
+export const isAddedLinkMetaInfoMissing = (
+  pluginId: string,
+  metaInfo: PluginExtensionAddedLinkConfig,
+  log: ExtensionsLog
+) => {
+  const app = config.apps[pluginId];
+  const logPrefix = `Added-link "${metaInfo.title}" from "${pluginId}" -`;
+  const pluginJsonMetaInfo = app ? app.extensions.addedLinks.find(({ title }) => title === metaInfo.title) : null;
+
+  if (!app) {
+    log.warning(`${logPrefix} couldn't find app plugin "${pluginId}"`);
+    return true;
+  }
+
+  if (!pluginJsonMetaInfo) {
+    log.warning(`${logPrefix} not registered in the plugin.json under "extensions.addedLinks[]".`);
+
+    return true;
+  }
+
+  const targets = Array.isArray(metaInfo.targets) ? metaInfo.targets : [metaInfo.targets];
+  if (!targets.every((target) => pluginJsonMetaInfo.targets.includes(target))) {
+    log.warning(`${logPrefix} the "targets" don't match with ones in the plugin.json under "extensions.addedLinks[]".`);
+
+    return true;
+  }
+
+  return false;
+};
+
+export const isAddedComponentMetaInfoMissing = (
+  pluginId: string,
+  metaInfo: PluginExtensionAddedComponentConfig,
+  log: ExtensionsLog
+) => {
+  const app = config.apps[pluginId];
+  const logPrefix = `Added component "${metaInfo.title}" -`;
+  const pluginJsonMetaInfo = app ? app.extensions.addedComponents.find(({ title }) => title === metaInfo.title) : null;
+
+  if (!app) {
+    log.warning(`${logPrefix} couldn't find app plugin "${pluginId}"`);
+    return true;
+  }
+
+  if (!pluginJsonMetaInfo) {
+    log.warning(`${logPrefix} not registered in the plugin.json under "extensions.addedComponents[]".`);
+
+    return true;
+  }
+
+  const targets = Array.isArray(metaInfo.targets) ? metaInfo.targets : [metaInfo.targets];
+  if (!targets.every((target) => pluginJsonMetaInfo.targets.includes(target))) {
+    log.warning(
+      `${logPrefix} the "targets" don't match with ones in the plugin.json under "extensions.addedComponents[]".`
+    );
+
+    return true;
+  }
+
+  return false;
+};
+
+export const isExposedComponentMetaInfoMissing = (
+  pluginId: string,
+  metaInfo: PluginExtensionExposedComponentConfig,
+  log: ExtensionsLog
+) => {
+  const app = config.apps[pluginId];
+  const logPrefix = `Exposed component "${metaInfo.id}" -`;
+  const pluginJsonMetaInfo = app ? app.extensions.exposedComponents.find(({ id }) => id === metaInfo.id) : null;
+
+  if (!app) {
+    log.warning(`${logPrefix} couldn't find app plugin: "${pluginId}"`);
+    return true;
+  }
+
+  if (!pluginJsonMetaInfo) {
+    log.warning(`${logPrefix} not registered in the plugin.json under "extensions.exposedComponents[]".`);
+
+    return true;
+  }
+
+  if (pluginJsonMetaInfo.title !== metaInfo.title) {
+    log.warning(
+      `${logPrefix} the "title" doesn't match with one in the plugin.json under "extensions.exposedComponents[]".`
+    );
+
+    return true;
+  }
+
+  return false;
+};
+
+export const getAppPluginConfigs = (pluginIds: string[] = []) =>
+  Object.values(config.apps).filter((app) => pluginIds.includes(app.id));
+
+export const getAppPluginIdFromExposedComponentId = (exposedComponentId: string) => {
+  return exposedComponentId.split('/')[0];
+};
+
+// Returns a list of app plugin ids that are registering extensions to this extension point.
+// (These plugins are necessary to be loaded to use the extension point.)
+// (The function also returns the plugin ids that the plugins - that extend the extension point - depend on.)
+export const getExtensionPointPluginDependencies = (extensionPointId: string): string[] => {
+  return Object.values(config.apps)
+    .filter(
+      (app) =>
+        app.extensions.addedLinks.some((link) => link.targets.includes(extensionPointId)) ||
+        app.extensions.addedComponents.some((component) => component.targets.includes(extensionPointId))
+    )
+    .map((app) => app.id)
+    .reduce((acc: string[], id: string) => {
+      return [...acc, id, ...getAppPluginDependencies(id)];
+    }, []);
+};
+
+// Returns a list of app plugin ids that are necessary to be loaded to use the exposed component.
+// (It is first the plugin that exposes the component, and then the ones that it depends on.)
+export const getExposedComponentPluginDependencies = (exposedComponentId: string) => {
+  const pluginId = getAppPluginIdFromExposedComponentId(exposedComponentId);
+
+  return [pluginId].reduce((acc: string[], pluginId: string) => {
+    return [...acc, pluginId, ...getAppPluginDependencies(pluginId)];
+  }, []);
+};
+
+// Returns a list of app plugin ids that are necessary to be loaded, based on the `dependencies.extensions`
+// metadata field. (For example the plugins that expose components that the app depends on.)
+// Heads up! This is a recursive function.
+export const getAppPluginDependencies = (pluginId: string): string[] => {
+  if (!config.apps[pluginId]) {
+    return [];
+  }
+
+  const pluginIdDependencies = config.apps[pluginId].dependencies.extensions.exposedComponents.map(
+    getAppPluginIdFromExposedComponentId
+  );
+
+  return pluginIdDependencies.reduce((acc, pluginId) => {
+    return [...acc, ...getAppPluginDependencies(pluginId)];
+  }, pluginIdDependencies);
+};
+
+// Returns a list of app plugins that has to be loaded before core Grafana could finish the initialization.
+export const getAppPluginsToAwait = () => {
+  const pluginIds = [
+    // The "cloud-home-app" is registering banners once it's loaded, and this can cause a rerender in the AppChrome if it's loaded after the Grafana app init.
+    'cloud-home-app',
+  ];
+
+  return Object.values(config.apps).filter((app) => pluginIds.includes(app.id));
+};
+
+// Returns a list of app plugins that has to be preloaded in parallel with the core Grafana initialization.
+export const getAppPluginsToPreload = () => {
+  // The DashboardPanelMenu extension point is using the `getPluginExtensions()` API in scenes at the moment, which means that it cannot yet benefit from dynamic plugin loading.
+  const dashboardPanelMenuPluginIds = getExtensionPointPluginDependencies(PluginExtensionPoints.DashboardPanelMenu);
+  const isLazyLoadingEnabled = config.featureToggles.appPluginLazyLoading;
+  const awaitedPluginIds = getAppPluginsToAwait().map((app) => app.id);
+
+  if (!isLazyLoadingEnabled) {
+    return Object.values(config.apps)
+      .filter((app) => app.preload)
+      .filter((app) => !awaitedPluginIds.includes(app.id));
+  }
+
+  return Object.values(config.apps)
+    .filter((app) => app.preload)
+    .filter((app) => !awaitedPluginIds.includes(app.id))
+    .filter(
+      (app) =>
+        dashboardPanelMenuPluginIds.includes(app.id) ||
+        (!app.extensions.addedLinks.length &&
+          !app.extensions.addedComponents.length &&
+          !app.extensions.exposedComponents.length &&
+          !app.extensions.extensionPoints.length &&
+          !app.dependencies.extensions.exposedComponents.length)
+    );
+};

@@ -234,6 +234,7 @@ export interface FeatureToggles {
   playlistsWatcher?: boolean;
   exploreMetricsRelatedLogs?: boolean;
   enableExtensionsAdminPage?: boolean;
+  appPluginLazyLoading?: boolean;
   zipkinBackendMigration?: boolean;
   enableSCIM?: boolean;
   crashDetection?: boolean;

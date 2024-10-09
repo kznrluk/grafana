@@ -871,6 +871,10 @@ const (
 	// Enables the extension admin page regardless of development mode
 	FlagEnableExtensionsAdminPage = "enableExtensionsAdminPage"
 
+	// FlagAppPluginLazyLoading
+	// Enables lazy-loading app plugins (stops preloading app plugins that have extensions related metadata info in their plugin.json)
+	FlagAppPluginLazyLoading = "appPluginLazyLoading"
+
 	// FlagZipkinBackendMigration
 	// Enables querying Zipkin data source without the proxy
 	FlagZipkinBackendMigration = "zipkinBackendMigration"

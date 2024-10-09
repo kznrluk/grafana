@@ -1617,6 +1617,13 @@ var (
 			RequiresRestart: true,
 		},
 		{
+			Name:            "appPluginLazyLoading",
+			Description:     "Enables lazy-loading app plugins (stops preloading app plugins that have extensions related metadata info in their plugin.json)",
+			Stage:           FeatureStageExperimental,
+			Owner:           grafanaPluginsPlatformSquad,
+			RequiresRestart: false,
+		},
+		{
 			Name:        "zipkinBackendMigration",
 			Description: "Enables querying Zipkin data source without the proxy",
 			Stage:       FeatureStageExperimental,
