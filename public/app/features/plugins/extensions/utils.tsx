@@ -491,21 +491,20 @@ export const getAppPluginsToPreload = () => {
   const awaitedPluginIds = getAppPluginsToAwait().map((app) => app.id);
 
   if (!isLazyLoadingEnabled) {
-    return Object.values(config.apps)
-      .filter((app) => app.preload)
-      .filter((app) => !awaitedPluginIds.includes(app.id));
+    return Object.values(config.apps).filter((app) => app.preload && !awaitedPluginIds.includes(app.id));
   }
 
-  return Object.values(config.apps)
-    .filter((app) => app.preload)
-    .filter((app) => !awaitedPluginIds.includes(app.id))
-    .filter(
-      (app) =>
-        dashboardPanelMenuPluginIds.includes(app.id) ||
+  return Object.values(config.apps).filter((app) => {
+    return (
+      app.preload &&
+      !awaitedPluginIds.includes(app.id) &&
+      // Either extends the panel menu (only supports getPluginExtensions()), or has no extensions meta-data
+      (dashboardPanelMenuPluginIds.includes(app.id) ||
         (!app.extensions.addedLinks.length &&
           !app.extensions.addedComponents.length &&
           !app.extensions.exposedComponents.length &&
           !app.extensions.extensionPoints.length &&
-          !app.dependencies.extensions.exposedComponents.length)
+          !app.dependencies.extensions.exposedComponents.length))
     );
+  });
 };
