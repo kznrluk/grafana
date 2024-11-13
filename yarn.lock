@@ -9501,6 +9501,7 @@ __metadata:
     "@grafana/runtime": "workspace:*"
     "@grafana/schema": "workspace:*"
     "@grafana/ui": "workspace:*"
+    "@rspack/cli": "npm:^1.0.0"
     "@types/lodash": "npm:4.17.7"
     "@types/node": "npm:20.14.14"
     "@types/prismjs": "npm:1.26.4"
@@ -9516,7 +9517,6 @@ __metadata:
     ts-node: "npm:10.9.2"
     tslib: "npm:2.6.3"
     typescript: "npm:5.5.4"
-    webpack: "npm:5.95.0"
     webpack-merge: "npm:5.10.0"
   peerDependencies:
     "@grafana/runtime": "*"
@@ -9533,6 +9533,7 @@ __metadata:
     "@grafana/runtime": "workspace:*"
     "@grafana/schema": "workspace:*"
     "@grafana/ui": "workspace:*"
+    "@rspack/cli": "npm:^1.0.0"
     "@types/lodash": "npm:4.17.7"
     "@types/node": "npm:20.14.14"
     "@types/prismjs": "npm:1.26.4"
@@ -9548,7 +9549,6 @@ __metadata:
     ts-node: "npm:10.9.2"
     tslib: "npm:2.6.3"
     typescript: "npm:5.5.4"
-    webpack: "npm:5.95.0"
     webpack-merge: "npm:5.10.0"
   peerDependencies:
     "@grafana/runtime": "*"
