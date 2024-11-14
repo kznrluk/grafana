@@ -149,6 +149,12 @@ Grafana Cloud handles the plugin installation automatically.
 
 If you're logged in to Grafana Cloud when you add a plugin, log out and then log back in again to use the new plugin.
 
+### Install plugins using the Grafana Docker image
+
+To install plugins using the Grafana Docker image, you can use the `GF_INSTALL_PLUGINS` environment variable. This variable is a comma-separated list of plugins to install.
+
+For more information about the Docker configuration, refer to the [Guide for configuring the Grafana Docker image]({{< relref "../../setup-grafana/configure-docker" >}}).
+
 ### Install plugins using the Grafana Helm chart
 
 With the Grafana Helm chart, add the plugins you want to install as a list using the `plugins` field in the your values file. For more information about the configuration, refer to [the Helm chart configuration reference](https://github.com/grafana/helm-charts/tree/main/charts/grafana#configuration).
@@ -164,19 +170,47 @@ plugins:
 
 ### Install plugin on local Grafana
 
-Follow the instructions on the **Install** tab. You can either install the plugin with a Grafana CLI command or by downloading and uncompressing a zip file into the Grafana plugins directory. We recommend using Grafana CLI in most instances. The zip option is available if your Grafana server doesn't have access to the internet.
+When you are hosting Grafana on your own server, you have multiple options to install a plugins. Each installation method has its own advantages and disadvantages. The different installation methods are:
+
+#### Install a plugin using Grafana Catalog
+
+In your instance, navigate to **Administration** -> **Plugins** and click in the plugin that you want to install. You can also search for the plugin using the "Search" box. Once in the plugin page, click the **Install** button or if you want to install an older version of the plugin, click the **Version history** tab and select the version that you want to install.
+
+This is the easiest way to install a plugin, and it's only available to users with plugin administrator permissions.
+
+#### Install a plugin using Grafana CLI
+
+To install a plugin using the Grafana CLI, run the following command:
+
+```bash
+grafana cli plugins install <plugin id> <version (optional)>
+```
+
+Similar to the previous, this method will download the plugin from the public Grafana catalog and install it in your Grafana instance.
+
+Use this method to install plugins if you don't have access to the Grafana UI or if you want to automate the installation process.
 
 For more information about Grafana CLI plugin commands, refer to [Plugin commands]({{< relref "../../cli/#plugins-commands" >}}).
 
-#### Install a packaged plugin
+#### Install a plugin using a zip file
 
-After the user has downloaded the archive containing the plugin assets, they can install it by extracting the archive into their plugin directory. For example:
+If your Grafana instance doesn't have access to the internet, you can download the plugin from the Grafana plugin catalog in advance and install it manually.
+
+After downloading the archive containing the plugin assets, install it by extracting the archive into their plugin directory. For example:
 
 ```bash
 unzip my-plugin-0.2.0.zip -d YOUR_PLUGIN_DIR/my-plugin
 ```
 
 The path to the plugin directory is defined in the configuration file. For more information, refer to [Configuration]({{< relref "../../setup-grafana/configure-grafana/#plugins" >}}).
+
+#### Install a plugin using configuration
+
+{{% admonition type="note" %}}
+This feature requires Grafana 11.3.0 or later.
+{{% /admonition %}}
+
+You can install plugins by adding the plugin ID to the `plugins.preinstall` section in the Grafana configuration file. This prevents the plugin from being accidentally uninstalled and can be auto-updated. For more information, refer to [Configuration]({{< relref "../../setup-grafana/configure-grafana/#plugins" >}}).
 
 ## Plugin signatures
 
