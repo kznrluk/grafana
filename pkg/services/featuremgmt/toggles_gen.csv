@@ -96,6 +96,7 @@ kubernetesPlaylists,GA,@grafana/grafana-app-platform-squad,false,true,false
 kubernetesSnapshots,experimental,@grafana/grafana-app-platform-squad,false,true,false
 kubernetesDashboards,experimental,@grafana/grafana-app-platform-squad,false,false,true
 kubernetesDashboardsAPI,experimental,@grafana/grafana-app-platform-squad,false,true,false
+useV2DashboardsAPI,experimental,@grafana/dashboards-squad,false,true,false
 kubernetesFolders,experimental,@grafana/search-and-storage,false,false,false
 grafanaAPIServerTestingWithExperimentalAPIs,experimental,@grafana/search-and-storage,false,false,false
 datasourceQueryTypes,experimental,@grafana/grafana-app-platform-squad,false,true,false

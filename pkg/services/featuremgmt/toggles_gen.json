@@ -3425,6 +3425,19 @@
     },
     {
       "metadata": {
+        "name": "useV2DashboardsAPI",
+        "resourceVersion": "1731669626966",
+        "creationTimestamp": "2024-11-15T11:20:26Z"
+      },
+      "spec": {
+        "description": "Use the v2 kubernetes API in the frontend for dashboards",
+        "stage": "experimental",
+        "codeowner": "@grafana/dashboards-squad",
+        "requiresRestart": true
+      }
+    },
+    {
+      "metadata": {
         "name": "userStorageAPI",
         "resourceVersion": "1730204321785",
         "creationTimestamp": "2024-10-29T12:18:41Z"

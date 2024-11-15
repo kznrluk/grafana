@@ -395,6 +395,10 @@ const (
 	// Use the kubernetes API in the backend for dashboards
 	FlagKubernetesDashboardsAPI = "kubernetesDashboardsAPI"
 
+	// FlagUseV2DashboardsAPI
+	// Use the v2 kubernetes API in the frontend for dashboards
+	FlagUseV2DashboardsAPI = "useV2DashboardsAPI"
+
 	// FlagKubernetesFolders
 	// Use the kubernetes API in the frontend for folders, and route /api/folders requests to k8s
 	FlagKubernetesFolders = "kubernetesFolders"
