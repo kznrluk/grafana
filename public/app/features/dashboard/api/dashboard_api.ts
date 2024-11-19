@@ -1,4 +1,4 @@
-import { DashboardSpec } from '@grafana/schema/dist/esm/schema/dashboard/v2alpha0/dashboard.gen';
+import { DashboardV2Spec } from '@grafana/schema/dist/esm/schema/dashboard/v2alpha0/dashboard.gen';
 import { DashboardDTO } from 'app/types';
 
 import { LegacyDashboardAPI } from './legacy';
@@ -12,12 +12,12 @@ export interface ApiVersionDTO {
   legacy: DashboardDTO;
   v0: DashboardDTO;
   // v1: DashboardDTO; TODO[schema]: enable v1 when available
-  v2: DashboardWithAccessInfo<DashboardSpec>;
+  v2: DashboardWithAccessInfo<DashboardV2Spec>;
 }
 
 type DashboardAPIClients = Record<
   keyof ApiVersionDTO,
-  DashboardAPI<DashboardDTO | DashboardWithAccessInfo<DashboardSpec>>
+  DashboardAPI<DashboardDTO | DashboardWithAccessInfo<DashboardV2Spec>>
 >;
 
 let clients: Partial<DashboardAPIClients> | undefined;
@@ -29,7 +29,7 @@ export function setDashboardAPI(override: Partial<DashboardAPIClients> | undefin
   clients = override;
 }
 
-export function getDashboardAPI(): DashboardAPI<DashboardDTO | DashboardWithAccessInfo<DashboardSpec>> {
+export function getDashboardAPI(): DashboardAPI<DashboardDTO | DashboardWithAccessInfo<DashboardV2Spec>> {
   if (!clients) {
     clients = {
       legacy: new LegacyDashboardAPI(),

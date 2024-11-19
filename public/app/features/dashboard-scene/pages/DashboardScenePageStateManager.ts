@@ -1,6 +1,6 @@
 import { locationUtil, UrlQueryMap } from '@grafana/data';
 import { config, getBackendSrv, isFetchError, locationService } from '@grafana/runtime';
-import { DashboardSpec } from '@grafana/schema/dist/esm/schema/dashboard/v2alpha0/dashboard.gen';
+import { DashboardV2Spec } from '@grafana/schema/dist/esm/schema/dashboard/v2alpha0/dashboard.gen';
 import { StateManagerBase } from 'app/core/services/StateManagerBase';
 import { getMessageFromError } from 'app/core/utils/errors';
 import { startMeasure, stopMeasure } from 'app/core/utils/metrics';
@@ -37,7 +37,7 @@ const LOAD_SCENE_MEASUREMENT = 'loadDashboardScene';
 export const HOME_DASHBOARD_CACHE_KEY = '__grafana_home_uid__';
 
 interface DashboardCacheEntry {
-  dashboard: DashboardDTO | DashboardWithAccessInfo<DashboardSpec>;
+  dashboard: DashboardDTO | DashboardWithAccessInfo<DashboardV2Spec>;
   ts: number;
   cacheKey: string;
 }
@@ -46,7 +46,15 @@ export interface LoadDashboardOptions {
   uid: string;
   route: DashboardRoutes;
   urlFolderUid?: string;
-  queryParams?: UrlQueryMap;
+  params?: {
+    version: number;
+    scopes: string[];
+    timeRange: {
+      from: string;
+      to: string;
+    };
+    variables: UrlQueryMap;
+  };
 }
 
 export class DashboardScenePageStateManager extends StateManagerBase<DashboardScenePageState> {
@@ -61,11 +69,11 @@ export class DashboardScenePageStateManager extends StateManagerBase<DashboardSc
     uid,
     route,
     urlFolderUid,
-    queryParams,
-  }: LoadDashboardOptions): Promise<DashboardDTO | DashboardWithAccessInfo<DashboardSpec> | null> {
+    params,
+  }: LoadDashboardOptions): Promise<DashboardDTO | DashboardWithAccessInfo<DashboardV2Spec> | null> {
     const cacheKey = route === DashboardRoutes.Home ? HOME_DASHBOARD_CACHE_KEY : uid;
 
-    if (!queryParams) {
+    if (!params) {
       const cachedDashboard = this.getDashboardFromCache(cacheKey);
 
       if (cachedDashboard) {
@@ -73,7 +81,7 @@ export class DashboardScenePageStateManager extends StateManagerBase<DashboardSc
       }
     }
 
-    let rsp: DashboardDTO | DashboardWithAccessInfo<DashboardSpec> | null = null;
+    let rsp: DashboardDTO | DashboardWithAccessInfo<DashboardV2Spec> | null = null;
 
     try {
       switch (route) {
@@ -100,6 +108,15 @@ export class DashboardScenePageStateManager extends StateManagerBase<DashboardSc
           return await dashboardLoaderSrv.loadDashboard('public', '', uid);
         }
         default:
+          const queryParams = params
+            ? {
+                version: params.version,
+                scopes: params.scopes,
+                from: params.timeRange.from,
+                to: params.timeRange.to,
+                ...params.variables,
+              }
+            : undefined;
           rsp = await dashboardLoaderSrv.loadDashboard('db', '', uid, queryParams);
 
           if (route === DashboardRoutes.Embedded) {
@@ -203,16 +220,23 @@ export class DashboardScenePageStateManager extends StateManagerBase<DashboardSc
     }
   }
 
-  public async reloadDashboard(queryParams?: LoadDashboardOptions['queryParams'] | undefined) {
-    // TODO[schema]: handle v2
-    // if (!this.state.options) {
+  public async reloadDashboard(params: LoadDashboardOptions['params']) {
+    // const stateOptions = this.state.options;
+    // if (!stateOptions) {
     //   return;
     // }
     // const options = {
-    //   ...this.state.options,
-    //   queryParams,
+    //   ...stateOptions,
+    //   params,
     // };
-    // if (isEqual(options, this.state.options)) {
+    // // We shouldn't check all params since:
+    // // - version doesn't impact the new dashboard, and it's there for increased compatibility
+    // // - time range is almost always different for relative time ranges and absolute time ranges do not trigger subsequent reloads
+    // // - other params don't affect the dashboard content
+    // if (
+    //   isEqual(options.params?.variables, stateOptions.params?.variables) &&
+    //   isEqual(options.params?.scopes, stateOptions.params?.scopes)
+    // ) {
     //   return;
     // }
     // try {
@@ -301,7 +325,7 @@ export class DashboardScenePageStateManager extends StateManagerBase<DashboardSc
     });
   }
 
-  public setDashboardCache(cacheKey: string, dashboard: DashboardDTO | DashboardWithAccessInfo<DashboardSpec>) {
+  public setDashboardCache(cacheKey: string, dashboard: DashboardDTO | DashboardWithAccessInfo<DashboardV2Spec>) {
     this.dashboardCache = { dashboard, ts: Date.now(), cacheKey };
   }
 
