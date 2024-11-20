@@ -91,6 +91,7 @@ export class DashboardScenePageStateManager extends StateManagerBase<DashboardSc
 
           break;
         case DashboardRoutes.Home:
+          // TODO[schema]: handle v2
           rsp = (await getBackendSrv().get('/api/dashboards/home')) as DashboardDTO;
 
           if (rsp.redirectUri) {
