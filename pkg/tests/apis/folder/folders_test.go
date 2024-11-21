@@ -765,6 +765,7 @@ func TestIntegrationFolderGetPermissions(t *testing.T) {
 		expectedCode         int
 		expectedParentUIDs   []string
 		expectedParentTitles []string
+		checkAccessControl   bool
 	}
 	tcs := []testCase{
 		{
@@ -780,6 +781,7 @@ func TestIntegrationFolderGetPermissions(t *testing.T) {
 					ResourceID:        "*",
 				},
 			},
+			checkAccessControl: true,
 		},
 		{
 			description:          "get folder by UID should return parent folders redacted if nested folder are enabled and user does not have read access to parent folders",
@@ -815,6 +817,7 @@ func TestIntegrationFolderGetPermissions(t *testing.T) {
 				},
 			})
 
+			// Create parent folder
 			parentPayload := `{
 				"title": "testparent",
 				"uid": "parentuid"
@@ -829,6 +832,7 @@ func TestIntegrationFolderGetPermissions(t *testing.T) {
 			parentUID := parentCreate.Result.UID
 			require.NotEmpty(t, parentUID)
 
+			// Create descendant folder
 			payload := "{ \"uid\": \"descUid\", \"title\": \"Folder\", \"parentUid\": \"parentuid\"}"
 			resp := apis.DoRequest(helper, apis.RequestParams{
 				User:   helper.Org1.Admin,
@@ -840,6 +844,7 @@ func TestIntegrationFolderGetPermissions(t *testing.T) {
 
 			user := helper.CreateUser("user", apis.Org1, org.RoleNone, tc.permissions)
 
+			// Get with accesscontrol disabled
 			getResp := apis.DoRequest(helper, apis.RequestParams{
 				User:   user,
 				Method: http.MethodGet,
@@ -847,14 +852,46 @@ func TestIntegrationFolderGetPermissions(t *testing.T) {
 			}, &dtos.Folder{})
 			require.Equal(t, tc.expectedCode, getResp.Response.StatusCode)
 			require.NotNil(t, getResp.Result)
-			parents := getResp.Result.Parents
 
+			require.False(t, getResp.Result.AccessControl[dashboards.ActionFoldersRead])
+			require.False(t, getResp.Result.AccessControl[dashboards.ActionFoldersWrite])
+
+			parents := getResp.Result.Parents
 			require.Equal(t, len(tc.expectedParentUIDs), len(parents))
 			require.Equal(t, len(tc.expectedParentTitles), len(parents))
-
 			for i := 0; i < len(tc.expectedParentUIDs); i++ {
 				require.Equal(t, tc.expectedParentUIDs[i], parents[i].UID)
 				require.Equal(t, tc.expectedParentTitles[i], parents[i].Title)
+			}
+
+			// Get with accesscontrol enabled
+			if tc.checkAccessControl {
+				acPerms := []resourcepermissions.SetResourcePermissionCommand{
+					{
+						Actions:           []string{dashboards.ActionFoldersRead},
+						Resource:          "folders",
+						ResourceAttribute: "uid",
+						ResourceID:        "*",
+					},
+					{
+						Actions:           []string{dashboards.ActionFoldersWrite},
+						Resource:          "folders",
+						ResourceAttribute: "uid",
+						ResourceID:        "parentuid",
+					},
+				}
+				acUser := helper.CreateUser("acuser", apis.Org1, org.RoleNone, acPerms)
+
+				getWithAC := apis.DoRequest(helper, apis.RequestParams{
+					User:   acUser,
+					Method: http.MethodGet,
+					Path:   "/api/folders/descUid?accesscontrol=true",
+				}, &dtos.Folder{})
+				require.Equal(t, tc.expectedCode, getWithAC.Response.StatusCode)
+				require.NotNil(t, getWithAC.Result)
+
+				require.True(t, getWithAC.Result.AccessControl[dashboards.ActionFoldersRead])
+				require.True(t, getWithAC.Result.AccessControl[dashboards.ActionFoldersWrite])
 			}
 		})
 	}
